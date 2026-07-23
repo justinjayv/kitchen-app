@@ -506,15 +506,13 @@
 }
 
 .recipe-card-list .recipe-card-img {
-  aspect-ratio: auto;
+  aspect-ratio: 1 / 1;
   width: 84px;
   flex: none;
   font-size: 10.5px;
 }
 
 .recipe-card-list .recipe-card-edit-btn.compact {
-  opacity: 1;
-  transform: none;
   top: 6px;
   right: 6px;
   padding: 5px;
