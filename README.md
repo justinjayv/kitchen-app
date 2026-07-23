@@ -1,51 +1,56 @@
 # Larder — Kitchen Inventory & Recipe Matcher
 
-A small full-stack app: track what's in your pantry, keep your recipes in
-one place, and see which recipes you can cook right now based on what you
-already have.
+Larder helps you keep track of what's in your kitchen and figure out what
+to cook with it. Log what you have, keep your recipes in one place, and
+Larder tells you which recipes you can make right now — and exactly what
+you'd need to pick up for the rest.
 
-- **Backend:** Python (FastAPI + SQLAlchemy + SQLite)
-- **Frontend:** React (Vite)
+## Features
 
-## What it does today
+### Ingredients (pantry)
 
-1. **Pantry** — add/edit/delete items with quantity, unit, purchase date,
-   and notes, in an inline-editable table built to stay fast with hundreds
-   of rows.
-2. **Recipes** — create recipes with a title, ingredient list, instructions,
-   a picture (via URL), a source link, and notes. Fully editable.
-3. **Ranking** — the Recipes page ranks every recipe by what percentage of
-   its ingredients are already in your pantry, and highlights exactly
-   which ingredients are missing (in red) on both the recipe card and the
-   recipe detail page.
-4. **Ingredient filter** — type an ingredient (e.g. "egg") to see only
-   recipes that use it.
+- Log every ingredient you have with a quantity, unit, storage location
+  (Fridge, Freezer, Pantry, or Spices), and any notes.
+- Items are grouped by storage location in the table, so you can quickly
+  scan just your fridge or just your spice rack.
+- Filter the view down to one or more locations with the chip buttons, or
+  search by name.
+- Edit any field right in the table — click into a cell, change it, and
+  it saves automatically.
+- Anything at zero quantity is flagged "out" so you know to restock it.
 
-## Project structure
+### Recipes
 
-```
-kitchen-app/
-  backend/          FastAPI app
-    main.py         API routes
-    models.py       SQLAlchemy tables (pantry_items, recipes, recipe_ingredients)
-    schemas.py      Pydantic request/response shapes
-    matching.py     Ingredient name normalization + match % logic
-    database.py     SQLite engine/session setup
-  frontend/         React (Vite) app
-    src/
-      api.js                    fetch wrapper for the backend
-      App.jsx                   layout + nav
-      components/
-        PantryView.jsx          inline-editable pantry table
-        RecipesView.jsx         recipe grid, search, ingredient filter
-        RecipeCard.jsx          card with match gauge + missing chips
-        RecipeEditor.jsx        create/edit form
-        RecipeDetail.jsx        full recipe view with missing ingredients highlighted
-        MatchGauge.jsx          the small "measuring cup" match % gauge
-```
+- Add recipes with a title, ingredient list (name + amount), step-by-step
+  instructions, a photo (via image URL), a source link, and freeform notes.
+- While typing numbered instructions, pressing Enter after a line like
+  "1. Preheat the oven" automatically starts the next line at "2." — and
+  pressing Enter on an empty numbered line ends the list.
+- Every recipe is fully editable and deletable after it's created.
+
+### What can I cook?
+
+- The Recipes page ranks every recipe by what percentage of its
+  ingredients you already have on hand, highest first.
+- Each recipe card shows that match percentage and lists which
+  ingredients are still missing — the first few inline, with a toggle to
+  expand and see the rest.
+- Opening a recipe's full detail page highlights the missing ingredients
+  in your list, so you know exactly what to grab at the store.
+- Type an ingredient name (e.g. "egg") into the ingredient filter to see
+  only recipes that use it.
+
+### How the matching works
+
+Ingredient names are compared as whole words, not loose substrings — so
+"onion, green" in a recipe matches "green onion" in your pantry (word
+order doesn't matter), but a pantry item just called "onion" won't be
+counted toward a recipe that calls for "green onion". Matching also
+ignores capitalization, punctuation, and simple plurals (eggs ↔ egg).
 
 ## Running it locally
 
+Larder runs entirely on your own machine — nothing is sent to a server.
 You'll need Python 3.10+ and Node.js 18+.
 
 **1. Start the backend** (from `backend/`):
@@ -56,8 +61,8 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-This creates `kitchen.db` (SQLite) automatically on first run. API docs
-are live at http://localhost:8000/docs.
+This creates a local `kitchen.db` (SQLite) file on first run — that's
+where all your data lives.
 
 **2. Start the frontend** (from `frontend/`, in a second terminal):
 
@@ -67,27 +72,4 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173 — it's already configured (via `.env`) to talk
-to the backend at `http://localhost:8000`.
-
-## How the ranking works
-
-Ingredient names are normalized (lowercased, punctuation stripped, trailing
-"s" dropped) and compared as substrings in both directions, so "egg" in
-your pantry matches "3 large eggs" in a recipe. A recipe's match % is
-`matched ingredients / total ingredients`. This is intentionally simple —
-easy to extend later (e.g. unit-aware quantity checks, so "1 egg" needed
-but you only have partial quantity would show differently).
-
-## Ideas for next steps
-
-- Quantity-aware matching (not just "do I have it" but "do I have *enough*")
-- Auto-decrement pantry quantities when you cook a recipe
-- Expiration-date warnings on pantry items
-- Image upload instead of URL-only
-- Recipe tags/categories and multi-ingredient filtering
-- User accounts (currently single-user, local SQLite)
-
-Since you said you'd build on this — this structure (separate schemas,
-matching logic in its own module, component-per-concern on the frontend)
-should make most of the above additive rather than requiring rewrites.
+Then open http://localhost:5173 in your browser.
