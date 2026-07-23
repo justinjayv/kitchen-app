@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getRankedRecipes,
   filterRecipesByIngredient,
@@ -10,6 +10,7 @@ import {
 import RecipeCard from "./RecipeCard";
 import RecipeEditor from "./RecipeEditor";
 import RecipeDetail from "./RecipeDetail";
+import ConfirmExitModal from "./ConfirmExitModal";
 
 export default function RecipesView() {
   const [subview, setSubview] = useState("list"); // list | detail | edit | new
@@ -21,6 +22,9 @@ export default function RecipesView() {
   const [filteredIds, setFilteredIds] = useState(null); // null = no ingredient filter active
   const [selectedId, setSelectedId] = useState(null);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [isEditorDirty, setIsEditorDirty] = useState(false);
+  const [pendingExit, setPendingExit] = useState(null); // subview to go to if user discards edits
+  const editorRef = useRef(null);
 
   useEffect(() => {
     loadRanked();
@@ -101,13 +105,49 @@ export default function RecipesView() {
 
   const matchInfo = ranked.find((r) => r.id === selectedId);
 
+  function requestExit(target) {
+    if (isEditorDirty) {
+      setPendingExit(target);
+    } else {
+      setSubview(target);
+    }
+  }
+
+  function handleKeepEditing() {
+    setPendingExit(null);
+  }
+
+  function handleDiscardExit() {
+    const target = pendingExit;
+    setPendingExit(null);
+    setIsEditorDirty(false);
+    setSubview(target);
+  }
+
+  function handleSaveExit() {
+    setPendingExit(null);
+    editorRef.current?.submit();
+  }
+
   if (subview === "new") {
     return (
       <div>
-        <button className="back-link" onClick={() => setSubview("list")}>
+        <button className="back-link" onClick={() => requestExit("list")}>
           ← All recipes
         </button>
-        <RecipeEditor onSave={handleCreate} onCancel={() => setSubview("list")} />
+        <RecipeEditor
+          ref={editorRef}
+          onSave={handleCreate}
+          onCancel={() => requestExit("list")}
+          onDirtyChange={setIsEditorDirty}
+        />
+        {pendingExit && (
+          <ConfirmExitModal
+            onKeepEditing={handleKeepEditing}
+            onDiscard={handleDiscardExit}
+            onSave={handleSaveExit}
+          />
+        )}
       </div>
     );
   }
@@ -115,14 +155,23 @@ export default function RecipesView() {
   if (subview === "edit" && selectedRecipe) {
     return (
       <div>
-        <button className="back-link" onClick={() => setSubview("detail")}>
+        <button className="back-link" onClick={() => requestExit("detail")}>
           ← Back to recipe
         </button>
         <RecipeEditor
+          ref={editorRef}
           initialRecipe={selectedRecipe}
           onSave={handleUpdate}
-          onCancel={() => setSubview("detail")}
+          onCancel={() => requestExit("detail")}
+          onDirtyChange={setIsEditorDirty}
         />
+        {pendingExit && (
+          <ConfirmExitModal
+            onKeepEditing={handleKeepEditing}
+            onDiscard={handleDiscardExit}
+            onSave={handleSaveExit}
+          />
+        )}
       </div>
     );
   }

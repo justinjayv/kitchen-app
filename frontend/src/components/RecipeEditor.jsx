@@ -1,27 +1,61 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo, useEffect, forwardRef, useImperativeHandle } from "react";
 import ImageAdjustModal from "./ImageAdjustModal";
 
 const NUMBERED_LINE = /^(\s*)(\d+)([.)])[ \t](.*)$/;
 
 const EMPTY_INGREDIENT = { name: "", quantity: "" };
 
-export default function RecipeEditor({ initialRecipe, onSave, onCancel }) {
-  const [title, setTitle] = useState(initialRecipe?.title || "");
-  const [instructions, setInstructions] = useState(initialRecipe?.instructions || "");
-  const [imageUrl, setImageUrl] = useState(initialRecipe?.image_url || "");
-  const [imagePosition, setImagePosition] = useState(initialRecipe?.image_position || "50% 50%");
-  const [imageScale, setImageScale] = useState(initialRecipe?.image_scale || 1);
-  const [recipeLink, setRecipeLink] = useState(initialRecipe?.recipe_link || "");
-  const [notes, setNotes] = useState(initialRecipe?.notes || "");
-  const [ingredients, setIngredients] = useState(
-    initialRecipe?.ingredients?.length
-      ? initialRecipe.ingredients.map((i) => ({ name: i.name, quantity: i.quantity || "" }))
-      : [{ ...EMPTY_INGREDIENT }]
-  );
+function buildInitialState(recipe) {
+  return {
+    title: recipe?.title || "",
+    instructions: recipe?.instructions || "",
+    imageUrl: recipe?.image_url || "",
+    imagePosition: recipe?.image_position || "50% 50%",
+    imageScale: recipe?.image_scale || 1,
+    recipeLink: recipe?.recipe_link || "",
+    notes: recipe?.notes || "",
+    ingredients: recipe?.ingredients?.length
+      ? recipe.ingredients.map((i) => ({ name: i.name, quantity: i.quantity || "" }))
+      : [{ ...EMPTY_INGREDIENT }],
+  };
+}
+
+const RecipeEditor = forwardRef(function RecipeEditor(
+  { initialRecipe, onSave, onCancel, onDirtyChange },
+  ref
+) {
+  const [initialState] = useState(() => buildInitialState(initialRecipe));
+  const [title, setTitle] = useState(initialState.title);
+  const [instructions, setInstructions] = useState(initialState.instructions);
+  const [imageUrl, setImageUrl] = useState(initialState.imageUrl);
+  const [imagePosition, setImagePosition] = useState(initialState.imagePosition);
+  const [imageScale, setImageScale] = useState(initialState.imageScale);
+  const [recipeLink, setRecipeLink] = useState(initialState.recipeLink);
+  const [notes, setNotes] = useState(initialState.notes);
+  const [ingredients, setIngredients] = useState(initialState.ingredients);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const instructionsRef = useRef(null);
+  const formRef = useRef(null);
+
+  const isDirty = useMemo(() => {
+    const current = { title, instructions, imageUrl, imagePosition, imageScale, recipeLink, notes, ingredients };
+    return JSON.stringify(current) !== JSON.stringify(initialState);
+  }, [title, instructions, imageUrl, imagePosition, imageScale, recipeLink, notes, ingredients, initialState]);
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => onDirtyChange?.(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    submit: () => formRef.current?.requestSubmit(),
+  }));
 
   function updateIngredient(index, field, value) {
     setIngredients((prev) =>
@@ -101,7 +135,7 @@ export default function RecipeEditor({ initialRecipe, onSave, onCancel }) {
   }
 
   return (
-    <form className="editor-panel" onSubmit={handleSubmit}>
+    <form className="editor-panel" ref={formRef} onSubmit={handleSubmit}>
       {error && <div className="error-banner">{error}</div>}
 
       <div className="field-row">
@@ -234,4 +268,6 @@ export default function RecipeEditor({ initialRecipe, onSave, onCancel }) {
       </div>
     </form>
   );
-}
+});
+
+export default RecipeEditor;
