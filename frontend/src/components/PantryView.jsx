@@ -9,7 +9,7 @@ import {
 const LOCATIONS = ["fridge", "freezer", "pantry", "spices"];
 const LOCATION_LABELS = { fridge: "Fridge", freezer: "Freezer", pantry: "Pantry", spices: "Spices" };
 
-const EMPTY_NEW_ITEM = { name: "", quantity: "", unit: "", purchased_date: "", notes: "", location: "pantry" };
+const EMPTY_NEW_ITEM = { name: "", quantity: "", unit: "", notes: "", location: "pantry" };
 
 export default function PantryView() {
   const [items, setItems] = useState([]);
@@ -102,7 +102,7 @@ export default function PantryView() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Pantry</h1>
+          <h1 className="page-title">Ingredients</h1>
           <p className="page-subtitle">
             Everything currently on hand. Edit any cell directly — changes save as you go.
           </p>
@@ -138,7 +138,6 @@ export default function PantryView() {
               <th style={{ width: "24%" }}>Item</th>
               <th style={{ width: "18%" }}>Quantity</th>
               <th style={{ width: "14%" }}>Location</th>
-              <th style={{ width: "16%" }}>Purchased</th>
               <th>Notes</th>
               <th className="col-actions"></th>
             </tr>
@@ -184,13 +183,6 @@ export default function PantryView() {
               </td>
               <td>
                 <input
-                  type="date"
-                  value={newItem.purchased_date}
-                  onChange={(e) => setNewItem({ ...newItem, purchased_date: e.target.value })}
-                />
-              </td>
-              <td>
-                <input
                   placeholder="notes"
                   value={newItem.notes}
                   onChange={(e) => setNewItem({ ...newItem, notes: e.target.value })}
@@ -207,7 +199,7 @@ export default function PantryView() {
             {groupedVisibleItems.map((group) => (
               <Fragment key={group.location}>
                 <tr className="location-section-header">
-                  <td colSpan={6}>
+                  <td colSpan={5}>
                     {LOCATION_LABELS[group.location]}
                     <span className="section-count">{group.items.length} item{group.items.length === 1 ? "" : "s"}</span>
                   </td>
@@ -288,14 +280,6 @@ function PantryRow({ item, onCommit, onDelete }) {
             </option>
           ))}
         </select>
-      </td>
-      <td>
-        <input
-          type="date"
-          value={local.purchased_date || ""}
-          onChange={(e) => setLocal({ ...local, purchased_date: e.target.value })}
-          onBlur={(e) => onCommit(item, "purchased_date", e.target.value)}
-        />
       </td>
       <td>
         <input

@@ -4,7 +4,7 @@ import RecipesView from "./components/RecipesView";
 import "./App.css";
 
 export default function App() {
-  const [view, setView] = useState("recipes");
+  const [view, setView] = useState("pantry");
 
   return (
     <div className="app-shell">
@@ -19,18 +19,18 @@ export default function App() {
 
         <nav className="nav">
           <button
-            className={`nav-item ${view === "recipes" ? "active" : ""}`}
-            onClick={() => setView("recipes")}
-          >
-            <span className="nav-num">01</span>
-            Recipes
-          </button>
-          <button
             className={`nav-item ${view === "pantry" ? "active" : ""}`}
             onClick={() => setView("pantry")}
           >
+            <span className="nav-num">01</span>
+            Ingredients
+          </button>
+          <button
+            className={`nav-item ${view === "recipes" ? "active" : ""}`}
+            onClick={() => setView("recipes")}
+          >
             <span className="nav-num">02</span>
-            Pantry
+            Recipes
           </button>
         </nav>
 
