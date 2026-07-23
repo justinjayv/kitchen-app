@@ -58,6 +58,8 @@ class RecipeBase(BaseModel):
     title: str
     instructions: Optional[str] = ""
     image_url: Optional[str] = ""
+    image_position: Optional[str] = "50% 50%"
+    image_scale: Optional[float] = 1.0
     recipe_link: Optional[str] = ""
     notes: Optional[str] = ""
 
@@ -70,6 +72,8 @@ class RecipeUpdate(BaseModel):
     title: Optional[str] = None
     instructions: Optional[str] = None
     image_url: Optional[str] = None
+    image_position: Optional[str] = None
+    image_scale: Optional[float] = None
     recipe_link: Optional[str] = None
     notes: Optional[str] = None
     ingredients: Optional[List[RecipeIngredientBase]] = None

@@ -43,6 +43,8 @@ class Recipe(Base):
     title = Column(String, nullable=False, index=True)
     instructions = Column(Text, nullable=True, default="")
     image_url = Column(String, nullable=True, default="")
+    image_position = Column(String, nullable=True, default="50% 50%")
+    image_scale = Column(Float, nullable=True, default=1.0)
     recipe_link = Column(String, nullable=True, default="")
     notes = Column(Text, nullable=True, default="")
     created_at = Column(DateTime, default=datetime.utcnow)

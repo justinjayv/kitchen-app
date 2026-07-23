@@ -20,15 +20,20 @@ export default function RecipeCard({ recipe, onOpen }) {
         }
       }}
     >
-      <div
-        className="recipe-card-img"
-        style={
-          recipe.image_url
-            ? { backgroundImage: `url(${recipe.image_url})` }
-            : undefined
-        }
-      >
-        {!recipe.image_url && "No photo"}
+      <div className="recipe-card-img">
+        {recipe.image_url ? (
+          <div
+            className="recipe-card-img-photo"
+            style={{
+              backgroundImage: `url(${recipe.image_url})`,
+              backgroundPosition: recipe.image_position || "50% 50%",
+              transform: `scale(${recipe.image_scale || 1})`,
+              transformOrigin: recipe.image_position || "50% 50%",
+            }}
+          />
+        ) : (
+          "No photo"
+        )}
       </div>
       <div className="recipe-card-body">
         <h3 className="recipe-card-title">{recipe.title}</h3>

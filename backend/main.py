@@ -30,6 +30,14 @@ with engine.connect() as conn:
         conn.execute(text("ALTER TABLE pantry_items ADD COLUMN location VARCHAR NOT NULL DEFAULT 'pantry'"))
         conn.commit()
 
+    existing_recipe_columns = {row[1] for row in conn.execute(text("PRAGMA table_info(recipes)"))}
+    if "image_position" not in existing_recipe_columns:
+        conn.execute(text("ALTER TABLE recipes ADD COLUMN image_position VARCHAR DEFAULT '50% 50%'"))
+        conn.commit()
+    if "image_scale" not in existing_recipe_columns:
+        conn.execute(text("ALTER TABLE recipes ADD COLUMN image_scale FLOAT DEFAULT 1.0"))
+        conn.commit()
+
 app = FastAPI(title="Kitchen Inventory API")
 
 # Allow the React dev server (Vite defaults to :5173) to call this API.

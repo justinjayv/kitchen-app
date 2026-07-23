@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import ImageAdjustModal from "./ImageAdjustModal";
 
 const NUMBERED_LINE = /^(\s*)(\d+)([.)])[ \t](.*)$/;
 
@@ -8,6 +9,8 @@ export default function RecipeEditor({ initialRecipe, onSave, onCancel }) {
   const [title, setTitle] = useState(initialRecipe?.title || "");
   const [instructions, setInstructions] = useState(initialRecipe?.instructions || "");
   const [imageUrl, setImageUrl] = useState(initialRecipe?.image_url || "");
+  const [imagePosition, setImagePosition] = useState(initialRecipe?.image_position || "50% 50%");
+  const [imageScale, setImageScale] = useState(initialRecipe?.image_scale || 1);
   const [recipeLink, setRecipeLink] = useState(initialRecipe?.recipe_link || "");
   const [notes, setNotes] = useState(initialRecipe?.notes || "");
   const [ingredients, setIngredients] = useState(
@@ -17,6 +20,7 @@ export default function RecipeEditor({ initialRecipe, onSave, onCancel }) {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
   const instructionsRef = useRef(null);
 
   function updateIngredient(index, field, value) {
@@ -84,6 +88,8 @@ export default function RecipeEditor({ initialRecipe, onSave, onCancel }) {
         title: title.trim(),
         instructions,
         image_url: imageUrl.trim(),
+        image_position: imagePosition,
+        image_scale: imageScale,
         recipe_link: recipeLink.trim(),
         notes,
         ingredients: cleanIngredients,
@@ -164,6 +170,49 @@ export default function RecipeEditor({ initialRecipe, onSave, onCancel }) {
           />
         </div>
       </div>
+
+      <div className="field-row">
+        <label>Photo crop</label>
+        <div className="image-thumb-row">
+          <div className="image-thumb-frame">
+            {imageUrl ? (
+              <div
+                className="image-thumb-photo"
+                style={{
+                  backgroundImage: `url(${imageUrl})`,
+                  backgroundPosition: imagePosition,
+                  transform: `scale(${imageScale})`,
+                  transformOrigin: imagePosition,
+                }}
+              />
+            ) : (
+              <span>No photo</span>
+            )}
+          </div>
+          <button
+            type="button"
+            className="btn"
+            disabled={!imageUrl}
+            onClick={() => setShowAdjustModal(true)}
+          >
+            Adjust photo
+          </button>
+        </div>
+      </div>
+
+      {showAdjustModal && (
+        <ImageAdjustModal
+          imageUrl={imageUrl}
+          initialPosition={imagePosition}
+          initialScale={imageScale}
+          onCancel={() => setShowAdjustModal(false)}
+          onSave={(position, scale) => {
+            setImagePosition(position);
+            setImageScale(scale);
+            setShowAdjustModal(false);
+          }}
+        />
+      )}
 
       <div className="field-row">
         <label htmlFor="notes">Notes</label>
