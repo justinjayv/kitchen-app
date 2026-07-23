@@ -280,6 +280,25 @@
   background: var(--paper-raised);
 }
 
+.pantry-table select {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 5px;
+  padding: 6px 7px;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.pantry-table select:hover {
+  border-color: var(--line-strong);
+}
+
+.pantry-table select:focus {
+  border-color: var(--accent);
+  background: var(--paper-raised);
+}
+
 .pantry-table td.col-qty input {
   font-family: var(--font-mono);
   text-align: right;
@@ -303,6 +322,23 @@
 
 .new-row td {
   background: var(--brass-soft);
+}
+
+.location-section-header td {
+  background: #efe9d9;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  color: var(--ink-soft);
+  padding: 8px 14px;
+}
+
+.location-section-header .section-count {
+  margin-left: 8px;
+  font-weight: 400;
+  color: var(--ink-soft);
+  opacity: 0.7;
 }
 
 .low-stock {

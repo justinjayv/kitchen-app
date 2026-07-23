@@ -32,6 +32,7 @@ class PantryItem(Base):
     unit = Column(String, nullable=True, default="")
     purchased_date = Column(String, nullable=True)  # stored as ISO date string
     notes = Column(Text, nullable=True, default="")
+    location = Column(String, nullable=False, default="pantry", server_default="pantry")
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 

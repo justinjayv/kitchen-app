@@ -11,6 +11,7 @@ from typing import List, Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 import models
@@ -19,6 +20,15 @@ from database import engine, get_db
 from matching import names_match, build_pantry_name_set, match_recipe_against_pantry, normalize
 
 models.Base.metadata.create_all(bind=engine)
+
+# `create_all` only creates missing tables, not missing columns on tables
+# that already existed (e.g. an existing kitchen.db from before the
+# `location` field was added). Patch it in with a manual ALTER TABLE.
+with engine.connect() as conn:
+    existing_columns = {row[1] for row in conn.execute(text("PRAGMA table_info(pantry_items)"))}
+    if "location" not in existing_columns:
+        conn.execute(text("ALTER TABLE pantry_items ADD COLUMN location VARCHAR NOT NULL DEFAULT 'pantry'"))
+        conn.commit()
 
 app = FastAPI(title="Kitchen Inventory API")
 

@@ -3,9 +3,11 @@ Pydantic schemas: what the API accepts and returns.
 """
 
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Literal
 
 from pydantic import BaseModel, ConfigDict
+
+PantryLocation = Literal["fridge", "freezer", "pantry", "spices"]
 
 
 # ---------- Pantry ----------
@@ -16,6 +18,7 @@ class PantryItemBase(BaseModel):
     unit: Optional[str] = ""
     purchased_date: Optional[str] = None
     notes: Optional[str] = ""
+    location: PantryLocation = "pantry"
 
 
 class PantryItemCreate(PantryItemBase):
@@ -28,6 +31,7 @@ class PantryItemUpdate(BaseModel):
     unit: Optional[str] = None
     purchased_date: Optional[str] = None
     notes: Optional[str] = None
+    location: Optional[PantryLocation] = None
 
 
 class PantryItemOut(PantryItemBase):

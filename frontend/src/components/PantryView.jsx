@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   getPantryItems,
   createPantryItem,
@@ -6,14 +6,27 @@ import {
   deletePantryItem,
 } from "../api";
 
-const EMPTY_NEW_ITEM = { name: "", quantity: "", unit: "", purchased_date: "", notes: "" };
+const LOCATIONS = ["fridge", "freezer", "pantry", "spices"];
+const LOCATION_LABELS = { fridge: "Fridge", freezer: "Freezer", pantry: "Pantry", spices: "Spices" };
+
+const EMPTY_NEW_ITEM = { name: "", quantity: "", unit: "", purchased_date: "", notes: "", location: "pantry" };
 
 export default function PantryView() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [visibleLocations, setVisibleLocations] = useState(() => new Set(LOCATIONS));
   const [newItem, setNewItem] = useState(EMPTY_NEW_ITEM);
+
+  function toggleLocation(loc) {
+    setVisibleLocations((prev) => {
+      const next = new Set(prev);
+      if (next.has(loc)) next.delete(loc);
+      else next.add(loc);
+      return next;
+    });
+  }
 
   useEffect(() => {
     load();
@@ -34,9 +47,17 @@ export default function PantryView() {
 
   const visibleItems = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((it) => it.name.toLowerCase().includes(q));
-  }, [items, search]);
+    return items.filter(
+      (it) => visibleLocations.has(it.location) && (!q || it.name.toLowerCase().includes(q))
+    );
+  }, [items, search, visibleLocations]);
+
+  const groupedVisibleItems = useMemo(() => {
+    return LOCATIONS.map((loc) => ({
+      location: loc,
+      items: visibleItems.filter((it) => (it.location || "pantry") === loc),
+    })).filter((group) => group.items.length > 0);
+  }, [visibleItems]);
 
   async function handleFieldCommit(item, field, value) {
     const parsedValue = field === "quantity" ? Number(value) || 0 : value;
@@ -98,13 +119,26 @@ export default function PantryView() {
 
       {error && <div className="error-banner">{error}</div>}
 
+      <div className="recipe-filter-row">
+        {LOCATIONS.map((loc) => (
+          <button
+            key={loc}
+            className={`chip-toggle${visibleLocations.has(loc) ? " active" : ""}`}
+            onClick={() => toggleLocation(loc)}
+          >
+            {LOCATION_LABELS[loc]}
+          </button>
+        ))}
+      </div>
+
       <div className="pantry-table-wrap">
         <table className="pantry-table">
           <thead>
             <tr>
-              <th style={{ width: "28%" }}>Item</th>
-              <th style={{ width: "22%" }}>Quantity</th>
-              <th style={{ width: "18%" }}>Purchased</th>
+              <th style={{ width: "24%" }}>Item</th>
+              <th style={{ width: "18%" }}>Quantity</th>
+              <th style={{ width: "14%" }}>Location</th>
+              <th style={{ width: "16%" }}>Purchased</th>
               <th>Notes</th>
               <th className="col-actions"></th>
             </tr>
@@ -137,6 +171,18 @@ export default function PantryView() {
                 </div>
               </td>
               <td>
+                <select
+                  value={newItem.location}
+                  onChange={(e) => setNewItem({ ...newItem, location: e.target.value })}
+                >
+                  {LOCATIONS.map((loc) => (
+                    <option key={loc} value={loc}>
+                      {LOCATION_LABELS[loc]}
+                    </option>
+                  ))}
+                </select>
+              </td>
+              <td>
                 <input
                   type="date"
                   value={newItem.purchased_date}
@@ -158,13 +204,23 @@ export default function PantryView() {
               </td>
             </tr>
 
-            {visibleItems.map((item) => (
-              <PantryRow
-                key={item.id}
-                item={item}
-                onCommit={handleFieldCommit}
-                onDelete={handleDelete}
-              />
+            {groupedVisibleItems.map((group) => (
+              <Fragment key={group.location}>
+                <tr className="location-section-header">
+                  <td colSpan={6}>
+                    {LOCATION_LABELS[group.location]}
+                    <span className="section-count">{group.items.length} item{group.items.length === 1 ? "" : "s"}</span>
+                  </td>
+                </tr>
+                {group.items.map((item) => (
+                  <PantryRow
+                    key={item.id}
+                    item={item}
+                    onCommit={handleFieldCommit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -174,6 +230,13 @@ export default function PantryView() {
         <div className="empty-state" style={{ marginTop: 18 }}>
           <strong>Your pantry is empty</strong>
           Add the first item above — name, quantity, and when you bought it.
+        </div>
+      )}
+
+      {!loading && items.length > 0 && visibleItems.length === 0 && (
+        <div className="empty-state" style={{ marginTop: 18 }}>
+          <strong>No items match the current filters</strong>
+          Try turning on another location above, or clear your search.
         </div>
       )}
     </div>
@@ -210,6 +273,21 @@ function PantryRow({ item, onCommit, onDelete }) {
           />
           {Number(local.quantity) <= 0 && <span className="low-stock">out</span>}
         </div>
+      </td>
+      <td>
+        <select
+          value={local.location || "pantry"}
+          onChange={(e) => {
+            setLocal({ ...local, location: e.target.value });
+            onCommit(item, "location", e.target.value);
+          }}
+        >
+          {LOCATIONS.map((loc) => (
+            <option key={loc} value={loc}>
+              {LOCATION_LABELS[loc]}
+            </option>
+          ))}
+        </select>
       </td>
       <td>
         <input
