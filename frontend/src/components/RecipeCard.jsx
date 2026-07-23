@@ -1,7 +1,7 @@
 import { useState } from "react";
 import MatchGauge from "./MatchGauge";
 
-export default function RecipeCard({ recipe, onOpen }) {
+export default function RecipeCard({ recipe, onOpen, onEdit }) {
   const [expanded, setExpanded] = useState(false);
   const hasMatch = typeof recipe.match_percentage === "number";
   const missing = recipe.missing_ingredients || [];
@@ -33,6 +33,29 @@ export default function RecipeCard({ recipe, onOpen }) {
           />
         ) : (
           "No photo"
+        )}
+        {onEdit && (
+          <button
+            type="button"
+            className="recipe-card-edit-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(recipe.id);
+            }}
+            aria-label={`Edit ${recipe.title}`}
+            title="Edit recipe"
+          >
+            <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden="true">
+              <path
+                d="M13.5 3.5l3 3L7 16H4v-3l9.5-9.5z"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            </svg>
+            Edit
+          </button>
         )}
       </div>
       <div className="recipe-card-body">

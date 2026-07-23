@@ -77,6 +77,17 @@ export default function RecipesView() {
     }
   }
 
+  async function openEdit(id) {
+    setSelectedId(id);
+    try {
+      const recipe = await getRecipe(id);
+      setSelectedRecipe(recipe);
+      setSubview("edit");
+    } catch (e) {
+      setError("Couldn't load that recipe.");
+    }
+  }
+
   async function handleCreate(payload) {
     const created = await createRecipe(payload);
     await loadRanked();
@@ -237,7 +248,7 @@ export default function RecipesView() {
 
       <div className="recipe-grid">
         {visibleRecipes.map((recipe) => (
-          <RecipeCard key={recipe.id} recipe={recipe} onOpen={openDetail} />
+          <RecipeCard key={recipe.id} recipe={recipe} onOpen={openDetail} onEdit={openEdit} />
         ))}
       </div>
     </div>
