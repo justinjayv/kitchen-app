@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+
+const NUMBERED_LINE = /^(\s*)(\d+)([.)])[ \t](.*)$/;
 
 const EMPTY_INGREDIENT = { name: "", quantity: "" };
 
@@ -15,6 +17,7 @@ export default function RecipeEditor({ initialRecipe, onSave, onCancel }) {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const instructionsRef = useRef(null);
 
   function updateIngredient(index, field, value) {
     setIngredients((prev) =>
@@ -28,6 +31,40 @@ export default function RecipeEditor({ initialRecipe, onSave, onCancel }) {
 
   function removeIngredientRow(index) {
     setIngredients((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function handleInstructionsKeyDown(e) {
+    if (e.key !== "Enter") return;
+
+    const textarea = e.target;
+    const { selectionStart, selectionEnd, value } = textarea;
+    if (selectionStart !== selectionEnd) return;
+
+    const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+    const currentLine = value.slice(lineStart, selectionStart);
+    const match = currentLine.match(NUMBERED_LINE);
+    if (!match) return;
+
+    e.preventDefault();
+    const [, indent, num, delim, rest] = match;
+
+    if (rest.trim() === "") {
+      // Enter on an empty numbered line ends the list instead of continuing it.
+      const newValue = value.slice(0, lineStart) + value.slice(selectionStart);
+      setInstructions(newValue);
+      requestAnimationFrame(() => {
+        textarea.selectionStart = textarea.selectionEnd = lineStart;
+      });
+      return;
+    }
+
+    const insertion = `\n${indent}${Number(num) + 1}${delim} `;
+    const newValue = value.slice(0, selectionStart) + insertion + value.slice(selectionEnd);
+    const newCursor = selectionStart + insertion.length;
+    setInstructions(newValue);
+    requestAnimationFrame(() => {
+      textarea.selectionStart = textarea.selectionEnd = newCursor;
+    });
   }
 
   async function handleSubmit(e) {
@@ -99,9 +136,11 @@ export default function RecipeEditor({ initialRecipe, onSave, onCancel }) {
         <label htmlFor="instructions">Instructions</label>
         <textarea
           id="instructions"
+          ref={instructionsRef}
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
-          placeholder="Step by step…"
+          onKeyDown={handleInstructionsKeyDown}
+          placeholder="Step by step… (start a line with '1.' to begin a numbered list)"
         />
       </div>
 
