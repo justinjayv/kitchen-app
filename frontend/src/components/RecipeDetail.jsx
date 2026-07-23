@@ -9,7 +9,7 @@ export default function RecipeDetail({ recipe, matchInfo, onEdit, onDelete, onBa
         ← All recipes
       </button>
 
-      <div className="editor-panel">
+      <div className="editor-panel detail-panel">
         <div className="detail-header">
           <div>
             <h1 className="page-title" style={{ fontSize: 28, marginBottom: 8 }}>
@@ -27,26 +27,44 @@ export default function RecipeDetail({ recipe, matchInfo, onEdit, onDelete, onBa
           </div>
         </div>
 
-        {recipe.image_url && <img className="detail-img" src={recipe.image_url} alt={recipe.title} />}
+        <div className="detail-media-row">
+          <div className="detail-photo-col">
+            {recipe.image_url && (
+              <div className="detail-img">
+                <div
+                  className="detail-img-photo"
+                  style={{
+                    backgroundImage: `url(${recipe.image_url})`,
+                    backgroundPosition: recipe.image_position || "50% 50%",
+                    transform: `scale(${recipe.image_scale || 1})`,
+                    transformOrigin: recipe.image_position || "50% 50%",
+                  }}
+                />
+              </div>
+            )}
 
-        {recipe.recipe_link && (
-          <p>
-            <a href={recipe.recipe_link} target="_blank" rel="noreferrer">
-              {recipe.recipe_link}
-            </a>
-          </p>
-        )}
+            {recipe.recipe_link && (
+              <p>
+                <a href={recipe.recipe_link} target="_blank" rel="noreferrer">
+                  {recipe.recipe_link}
+                </a>
+              </p>
+            )}
+          </div>
 
-        <div className="detail-section-title">Ingredients</div>
-        <ul className="ingredient-list">
-          {recipe.ingredients.map((ing) => (
-            <li key={ing.id} className={missingSet.has(ing.name.toLowerCase()) ? "missing" : ""}>
-              <span>{ing.name}</span>
-              <span className="qty">{ing.quantity}</span>
-            </li>
-          ))}
-          {recipe.ingredients.length === 0 && <li>No ingredients listed yet.</li>}
-        </ul>
+          <div className="detail-ingredients-col">
+            <div className="detail-section-title">Ingredients</div>
+            <ul className="ingredient-list">
+              {recipe.ingredients.map((ing) => (
+                <li key={ing.id} className={missingSet.has(ing.name.toLowerCase()) ? "missing" : ""}>
+                  <span>{ing.name}</span>
+                  <span className="qty">{ing.quantity}</span>
+                </li>
+              ))}
+              {recipe.ingredients.length === 0 && <li>No ingredients listed yet.</li>}
+            </ul>
+          </div>
+        </div>
 
         {recipe.instructions && (
           <>
