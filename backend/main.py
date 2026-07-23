@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from database import engine, get_db
-from matching import build_pantry_name_set, match_recipe_against_pantry, normalize
+from matching import names_match, build_pantry_name_set, match_recipe_against_pantry, normalize
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -141,7 +141,7 @@ def filter_recipes_by_ingredient(
     for recipe in recipes:
         for ing in recipe.ingredients:
             norm_ing = normalize(ing.name)
-            if norm_target in norm_ing or norm_ing in norm_target:
+            if names_match(norm_target, norm_ing):
                 results.append(recipe)
                 break
     return results

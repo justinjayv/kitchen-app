@@ -5,8 +5,9 @@ Kept intentionally simple and dependency-free: lowercase, strip
 punctuation/whitespace, and drop a trailing 's' as a crude singular/plural
 normalizer (eggs -> egg, tomatoes -> tomatoe... good enough for matching
 since we compare both sides the same way). A pantry ingredient "matches" a
-recipe ingredient if one normalized name contains the other -- this lets
-"egg" in the pantry match "large eggs" in a recipe, and vice versa.
+recipe ingredient only if they have the exact same set of words -- this
+lets "onion, green" match "green onion" (order doesn't matter), but keeps
+"onion" from matching "green onion" (different word sets).
 """
 
 import re
@@ -24,10 +25,10 @@ def normalize(name: str) -> str:
     return name
 
 
-def _names_match(a: str, b: str) -> bool:
+def names_match(a: str, b: str) -> bool:
     if not a or not b:
         return False
-    return a == b or a in b or b in a
+    return set(a.split()) == set(b.split())
 
 
 def build_pantry_name_set(pantry_items: Iterable[PantryItem]) -> Set[str]:
@@ -51,7 +52,7 @@ def match_recipe_against_pantry(
 
     for ing in ingredients:
         norm = normalize(ing.name)
-        if any(_names_match(norm, pantry_name) for pantry_name in pantry_names):
+        if any(names_match(norm, pantry_name) for pantry_name in pantry_names):
             matched.append(ing.name)
         else:
             missing.append(ing.name)
