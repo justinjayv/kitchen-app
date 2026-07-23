@@ -18,6 +18,7 @@ export default function RecipesView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState("tile"); // tile | list
   const [ingredientFilter, setIngredientFilter] = useState("");
   const [filteredIds, setFilteredIds] = useState(null); // null = no ingredient filter active
   const [selectedId, setSelectedId] = useState(null);
@@ -215,6 +216,35 @@ export default function RecipesView() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <div className="view-toggle" role="group" aria-label="Recipe view">
+            <button
+              type="button"
+              className={`view-toggle-btn${viewMode === "tile" ? " active" : ""}`}
+              onClick={() => setViewMode("tile")}
+              aria-pressed={viewMode === "tile"}
+              title="Tile view"
+            >
+              <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true">
+                <rect x="2.5" y="2.5" width="6" height="6" rx="1.2" stroke="currentColor" strokeWidth="1.4" />
+                <rect x="11.5" y="2.5" width="6" height="6" rx="1.2" stroke="currentColor" strokeWidth="1.4" />
+                <rect x="2.5" y="11.5" width="6" height="6" rx="1.2" stroke="currentColor" strokeWidth="1.4" />
+                <rect x="11.5" y="11.5" width="6" height="6" rx="1.2" stroke="currentColor" strokeWidth="1.4" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={`view-toggle-btn${viewMode === "list" ? " active" : ""}`}
+              onClick={() => setViewMode("list")}
+              aria-pressed={viewMode === "list"}
+              title="List view"
+            >
+              <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true">
+                <rect x="2.5" y="3.5" width="15" height="2.6" rx="1" fill="currentColor" />
+                <rect x="2.5" y="8.7" width="15" height="2.6" rx="1" fill="currentColor" />
+                <rect x="2.5" y="13.9" width="15" height="2.6" rx="1" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
           <button className="btn btn-primary" onClick={() => setSubview("new")}>
             + New recipe
           </button>
@@ -246,9 +276,15 @@ export default function RecipesView() {
         </div>
       )}
 
-      <div className="recipe-grid">
+      <div className={viewMode === "list" ? "recipe-list" : "recipe-grid"}>
         {visibleRecipes.map((recipe) => (
-          <RecipeCard key={recipe.id} recipe={recipe} onOpen={openDetail} onEdit={openEdit} />
+          <RecipeCard
+            key={recipe.id}
+            recipe={recipe}
+            view={viewMode}
+            onOpen={openDetail}
+            onEdit={openEdit}
+          />
         ))}
       </div>
     </div>

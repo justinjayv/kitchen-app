@@ -1,15 +1,16 @@
 import { useState } from "react";
 import MatchGauge from "./MatchGauge";
 
-export default function RecipeCard({ recipe, onOpen, onEdit }) {
+export default function RecipeCard({ recipe, view = "tile", onOpen, onEdit }) {
   const [expanded, setExpanded] = useState(false);
   const hasMatch = typeof recipe.match_percentage === "number";
   const missing = recipe.missing_ingredients || [];
   const visibleMissing = expanded ? missing : missing.slice(0, 4);
+  const isList = view === "list";
 
   return (
     <div
-      className="recipe-card"
+      className={`recipe-card${isList ? " recipe-card-list" : ""}`}
       role="button"
       tabIndex={0}
       onClick={() => onOpen(recipe.id)}
@@ -37,7 +38,7 @@ export default function RecipeCard({ recipe, onOpen, onEdit }) {
         {onEdit && (
           <button
             type="button"
-            className="recipe-card-edit-btn"
+            className={`recipe-card-edit-btn${isList ? " compact" : ""}`}
             onClick={(e) => {
               e.stopPropagation();
               onEdit(recipe.id);
@@ -54,7 +55,7 @@ export default function RecipeCard({ recipe, onOpen, onEdit }) {
                 strokeLinecap="round"
               />
             </svg>
-            Edit
+            {!isList && "Edit"}
           </button>
         )}
       </div>
