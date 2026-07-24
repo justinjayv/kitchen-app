@@ -8,16 +8,56 @@ const nativeTextareaValueSetter = Object.getOwnPropertyDescriptor(
   "value"
 ).set;
 
-// Renumbers a contiguous run of numbered-list lines (same indent) in place,
-// starting right after baseNum, stopping at the first line that breaks the list.
-function renumberLines(lines, startIndex, indent, baseNum) {
-  let expected = baseNum + 1;
-  for (let i = startIndex; i < lines.length; i++) {
+// Scans the whole text for contiguous numbered-list runs (same indent, no
+// break in between) and renumbers each one sequentially, keeping the run's
+// first line as the anchor. Running this after every edit — rather than
+// trying to catch the specific keystroke that removed or added an item —
+// means it doesn't matter *how* an item was removed (select-and-delete,
+// backspacing through it, cut, etc.): whatever remains just gets relabeled.
+function renumberInstructionsText(value) {
+  const lines = value.split("\n");
+  let i = 0;
+  while (i < lines.length) {
     const m = lines[i].match(NUMBERED_LINE);
-    if (!m || m[1] !== indent) break;
-    lines[i] = `${m[1]}${expected}${m[3]} ${m[4]}`;
-    expected++;
+    if (!m) {
+      i++;
+      continue;
+    }
+    const indent = m[1];
+    let expected = Number(m[2]) + 1;
+    let j = i + 1;
+    while (j < lines.length) {
+      const m2 = lines[j].match(NUMBERED_LINE);
+      if (!m2 || m2[1] !== indent) break;
+      if (Number(m2[2]) !== expected) {
+        lines[j] = `${m2[1]}${expected}${m2[3]} ${m2[4]}`;
+      }
+      expected++;
+      j++;
+    }
+    i = j;
   }
+  return lines.join("\n");
+}
+
+// Renumbering can change line lengths (e.g. "9." -> "10."), so the cursor
+// needs to shift by however much text was inserted/removed before it.
+function shiftCursorForRenumber(rawValue, normalizedValue, cursor) {
+  const rawLines = rawValue.split("\n");
+  const normLines = normalizedValue.split("\n");
+  let offset = 0;
+  let shifted = cursor;
+  for (let i = 0; i < rawLines.length; i++) {
+    const rawLen = rawLines[i].length;
+    const delta = normLines[i].length - rawLen;
+    if (cursor <= offset + rawLen) {
+      if (cursor > offset) shifted += delta;
+      return shifted;
+    }
+    shifted += delta;
+    offset += rawLen + 1;
+  }
+  return shifted;
 }
 
 const EMPTY_INGREDIENT = { name: "", quantity: "" };
@@ -100,108 +140,53 @@ const RecipeEditor = forwardRef(function RecipeEditor(
   }
 
   function handleInstructionsKeyDown(e) {
+    if (e.key !== "Enter") return;
+
     const textarea = e.target;
     const { selectionStart, selectionEnd, value } = textarea;
+    if (selectionStart !== selectionEnd) return;
 
-    if (e.key === "Enter") {
-      if (selectionStart !== selectionEnd) return;
-
-      const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
-      const currentLine = value.slice(lineStart, selectionStart);
-      const match = currentLine.match(NUMBERED_LINE);
-      if (!match) return;
-
-      e.preventDefault();
-      const [, indent, num, delim, rest] = match;
-
-      if (rest.trim() === "") {
-        // Enter on an empty numbered line ends the list instead of continuing it.
-        const newValue = value.slice(0, lineStart) + value.slice(selectionStart);
-        replaceInstructionsValue(textarea, newValue, lineStart);
-        return;
-      }
-
-      const newNum = Number(num) + 1;
-      const insertion = `\n${indent}${newNum}${delim} `;
-
-      // Renumber subsequent lines that continue this list, so inserting in the
-      // middle bumps everything below by one (Word-style).
-      const afterLines = value.slice(selectionEnd).split("\n");
-      renumberLines(afterLines, 1, indent, newNum);
-
-      const newValue = value.slice(0, selectionStart) + insertion + afterLines.join("\n");
-      const newCursor = selectionStart + insertion.length;
-      replaceInstructionsValue(textarea, newValue, newCursor);
-      return;
-    }
-
-    if (e.key !== "Backspace" && e.key !== "Delete") return;
-
-    if (selectionStart !== selectionEnd) {
-      // A selection spanning one or more whole lines (start to line start,
-      // through to the next line start or end of text) removes those items
-      // outright, so what follows steps down to take their place.
-      const isLineStart = (pos) => pos === 0 || value[pos - 1] === "\n";
-      const endsAtLineBoundary = selectionEnd === value.length || value[selectionEnd - 1] === "\n";
-      if (!isLineStart(selectionStart) || !endsAtLineBoundary) return;
-
-      const firstLineEnd = value.indexOf("\n", selectionStart);
-      const firstRemovedLine = value.slice(
-        selectionStart,
-        firstLineEnd === -1 || firstLineEnd >= selectionEnd ? selectionEnd : firstLineEnd
-      );
-      const match = firstRemovedLine.match(NUMBERED_LINE);
-      if (!match) return;
-
-      e.preventDefault();
-      const [, indent, num] = match;
-      const afterLines = value.slice(selectionEnd).split("\n");
-      renumberLines(afterLines, 0, indent, Number(num) - 1);
-      const newValue = value.slice(0, selectionStart) + afterLines.join("\n");
-      replaceInstructionsValue(textarea, newValue, selectionStart);
-      return;
-    }
-
-    if (e.key === "Backspace") {
-      // Backspace at the very start of a numbered line merges it into the
-      // previous line, dropping its own marker — following items step down.
-      const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
-      if (selectionStart !== lineStart || lineStart === 0) return;
-
-      const lineEndIdx = value.indexOf("\n", lineStart);
-      const currentLineEnd = lineEndIdx === -1 ? value.length : lineEndIdx;
-      const match = value.slice(lineStart, currentLineEnd).match(NUMBERED_LINE);
-      if (!match) return;
-
-      e.preventDefault();
-      const [, indent, num, , rest] = match;
-      const hasMore = lineEndIdx !== -1;
-      const afterLines = hasMore ? value.slice(currentLineEnd + 1).split("\n") : [];
-      renumberLines(afterLines, 0, indent, Number(num) - 1);
-
-      const newValue = value.slice(0, lineStart - 1) + rest + (hasMore ? "\n" + afterLines.join("\n") : "");
-      replaceInstructionsValue(textarea, newValue, lineStart - 1);
-      return;
-    }
-
-    // Delete at the very end of a line, where the next line is a numbered
-    // item, merges that item up and drops its marker — same as above.
-    if (value[selectionStart] !== "\n") return;
-
-    const nextLineStart = selectionStart + 1;
-    const nextLineEndIdx = value.indexOf("\n", nextLineStart);
-    const nextLineEnd = nextLineEndIdx === -1 ? value.length : nextLineEndIdx;
-    const match = value.slice(nextLineStart, nextLineEnd).match(NUMBERED_LINE);
+    const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+    const currentLine = value.slice(lineStart, selectionStart);
+    const match = currentLine.match(NUMBERED_LINE);
     if (!match) return;
 
     e.preventDefault();
-    const [, indent, num, , rest] = match;
-    const hasMore = nextLineEndIdx !== -1;
-    const afterLines = hasMore ? value.slice(nextLineEnd + 1).split("\n") : [];
-    renumberLines(afterLines, 0, indent, Number(num) - 1);
+    const [, indent, num, delim, rest] = match;
 
-    const newValue = value.slice(0, selectionStart) + rest + (hasMore ? "\n" + afterLines.join("\n") : "");
-    replaceInstructionsValue(textarea, newValue, selectionStart);
+    if (rest.trim() === "") {
+      // Enter on an empty numbered line ends the list instead of continuing it.
+      const newValue = value.slice(0, lineStart) + value.slice(selectionStart);
+      replaceInstructionsValue(textarea, newValue, lineStart);
+      return;
+    }
+
+    // Insert the next marker; handleInstructionsChange renumbers whatever
+    // follows once this change lands, so we don't need to do it here too.
+    const insertion = `\n${indent}${Number(num) + 1}${delim} `;
+    const newValue = value.slice(0, selectionStart) + insertion + value.slice(selectionEnd);
+    const newCursor = selectionStart + insertion.length;
+    replaceInstructionsValue(textarea, newValue, newCursor);
+  }
+
+  // Runs after every edit to the instructions field — typing, pasting,
+  // deleting a whole item, backspacing through one character by character,
+  // whatever. It doesn't matter how the text changed; this just looks at the
+  // result and fixes any numbered list that's no longer sequential.
+  function handleInstructionsChange(e) {
+    const textarea = e.target;
+    const raw = textarea.value;
+    const normalized = renumberInstructionsText(raw);
+
+    if (normalized === raw) {
+      setInstructions(raw);
+      return;
+    }
+
+    const newCursor = shiftCursorForRenumber(raw, normalized, textarea.selectionStart);
+    nativeTextareaValueSetter.call(textarea, normalized);
+    textarea.setSelectionRange(newCursor, newCursor);
+    setInstructions(normalized);
   }
 
   async function handleSubmit(e) {
@@ -277,7 +262,7 @@ const RecipeEditor = forwardRef(function RecipeEditor(
           id="instructions"
           ref={instructionsRef}
           value={instructions}
-          onChange={(e) => setInstructions(e.target.value)}
+          onChange={handleInstructionsChange}
           onKeyDown={handleInstructionsKeyDown}
           placeholder="Step by step… (start a line with '1.' to begin a numbered list)"
         />
